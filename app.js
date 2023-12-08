@@ -1,13 +1,15 @@
-const e = require("express");
 const express =require ("express");
 const app=express();
 const User = require('./models/Users');
-app.use(express.json());
+const Cart=require('./models/Cart');
 const mongoose=require("mongoose");
+const bodyP =require("body-parser")
 const bcrypt=require("bcryptjs");
 const multer=require("multer");
 const path=require("path");
 
+const {body ,validationResult}=require("express-validator");
+app.use(express.json());
 
 mongoose
 .connect('mongodb://127.0.0.1:27017/ourstor')
@@ -26,25 +28,40 @@ res.status(400).jason({message: error.message})
 
 
 
-app.post('/signUp',  async (req, res) => {
-     
-
+app.post('/signUp',  [body("username","username required and  must have min 4 characterand max 30 character ").isLength({min:4,max:30}).notEmpty(),
+body('password','password required must be min 8 character').isLength({min:8}).notEmpty(),
+body('phoneNumber','wrong phone namber').isLength({min:11,max:11}).notEmpty(),
+body('email','wrong email').isEmail().notEmpty()],async (req, res,next) => {
+       
+  
 try{
     //get user object from body 
     let userParam = req.body;
-    // validate
+    // validate       
+     
+          
+     
+    const error=validationResult(req);
       
+    if (!error.isEmpty()) {  
+         res.status(400).json( {error : error.array()});
+      }
+    // const isValid = validator.validate(userParam.email);
+            
+     
+    // if( !isValid){    
+    //     res.status(400).json({ message: 'wrong email' });
+    // }
+        
     if (await User.findOne({ email: userParam.email })) {
         res.status(400).send( 'email "' + userParam.email + '" is already exist');
     }
     if (await User.findOne({ phoneNumber: userParam.phoneNumber })) {
         res.status(400).send( 'phone "' + userParam.phoneNumber + '" is already exist');
     }
-    if (await userParam.username==="") {
-        res.send( 'userName required');
-    }
-
     
+  
+        
     const salt=await bcrypt.genSalt(10);
     req.body.password=await bcrypt.hash(req.body.password,salt)
 
@@ -107,10 +124,21 @@ const passwordMatch= await bcrypt.compare(userParam.password,user.password)
 
 
 
-    app.put('/update/:email', async (req, res) => {
+    app.put('/update/:email', [body("username","username required and  must have min 4 characterand max 30 character ").isLength({min:4,max:30}).notEmpty(),
+    body('password','password required must be min 8 character').isLength({min:8}).notEmpty(),
+    body('phoneNumber','wrong phone namber').isLength({min:11,max:11}).notEmpty(),
+    body('email','wrong email').isEmail().notEmpty()],async (req, res) => {
         try{   
         
         let userParam = req.body;
+
+          
+     
+    const error=validationResult(req);
+      
+    if (!error.isEmpty()) {  
+         res.status(400).json( {error : error.array()});
+      }
 
         if(userParam.password){
     const salt=await bcrypt.genSalt(10);
@@ -241,9 +269,43 @@ app.post('/image',uploud.single("image") ,async (req, res) => {
 
 })   
 
+app.post('/cart/:id', async (req, res) => {
+
+    try {
+
+    const { productId, quantity, name, price } = req.body;
+
+         const userId =req.params;
+
+      let cart = await Cart.findOne({userId});
+  
+      if (cart) {
+      
+         cart.products[itemIndex++]= cart.products.push({ productId, quantity, name, price });
+          
+        cart = await cart.save();
+        return res.status(201).send(cart);
+    
+      } else {
+        //no cart for user, create new cart
+        const newCart = await Cart.create({
+          userId,
+          products: [{ productId, quantity, name, price }]
+        });
+  
+        return res.status(201).send(newCart);
+      
+      }  
+    } catch (err) {
+
+      res.status(400).send("Something went wrong"+err);
+    }
+  });
+
 
 
  
+       
 
 
 app.listen(3000,()=>{console.log(" server runing on port 3000")})

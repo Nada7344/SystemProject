@@ -10,7 +10,15 @@ const UserSchema = new Schema(
         password: { type: String, required: true },
         phoneNumber: { type: String, required: false },
         image: { type: String, required: false },
-        Admin:{type:Boolean,default:false}
+        Admin:{type:Boolean,default:false},
+        products: [
+            {
+              productId: Number,
+              quantity: Number,
+              name: String,
+              price: Number
+            }
+          ]
 
     },
     {
